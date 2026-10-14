@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis propinas</title>
+<meta name="theme-color" content="#eef1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1714" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Propinas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root{--bg:#eef1ec;--sf:#ffffff;--tx:#12201c;--mu:#5b6b65;--ac:#1f5f4a;--ac2:#e0ede6;--bad:#b3261e;--ln:#d3dbd5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1714;--sf:#172320;--tx:#e8efea;--mu:#8fa39a;--ac:#6fcf97;--ac2:#1f3a2f;--bad:#ff8a80;--ln:#263630;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1714;--sf:#172320;--tx:#e8efea;--mu:#8fa39a;--ac:#6fcf97;--ac2:#1f3a2f;--bad:#ff8a80;--ln:#263630;color-scheme:dark}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font:16px/1.4 "Avenir Next","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+main{max-width:480px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:20px;margin:0}
+h2{font-size:15px;margin:24px 0 8px;font-weight:700}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mu{color:var(--mu);font-size:13px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--ln);padding:4px;border-radius:12px;margin:14px 0}
+.seg button{border:0;background:transparent;color:var(--mu);font:inherit;font-weight:700;min-height:44px;border-radius:9px}
+.seg button[aria-selected="true"]{background:var(--sf);color:var(--tx)}
+button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.hero{background:var(--ac);color:#fff;border-radius:18px;padding:18px}
+:root[data-theme="dark"] .hero{color:#0f1714}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hero{color:#0f1714}}
+.hero .lbl{font-size:14px;opacity:.9}
+.big{font-size:44px;font-weight:800;line-height:1.1;margin:2px 0 12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid rgba(255,255,255,.35);padding-top:10px}
+.stats div{font-size:12px;opacity:.95}
+.stats b{display:block;font-size:16px}
+.neg{color:#ffd9d4}
+.row{display:flex;gap:8px;margin-top:8px}
+input{flex:1;min-width:0;min-height:52px;padding:0 14px;border:2px solid var(--ln);border-radius:12px;background:var(--sf);font-size:20px}
+.btn{min-height:52px;padding:0 16px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-weight:700}
+:root[data-theme="dark"] .btn{color:#0f1714}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#0f1714}}
+.q{flex:1;min-height:52px;border:2px solid var(--ac);background:transparent;color:var(--ac);border-radius:12px;font-weight:700}
+.q[aria-pressed="true"]{background:var(--ac);color:#fff}
+:root[data-theme="dark"] .q[aria-pressed="true"]{color:#0f1714}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .q[aria-pressed="true"]{color:#0f1714}}
+label.t{display:block;font-weight:700;margin-top:20px}
+.prev{min-height:20px;font-size:13px;color:var(--mu);margin-top:4px}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--ln)}
+.item .n{flex:1}
+.item .d{background:transparent;border:0;color:var(--mu);font-size:22px;min-width:44px;min-height:44px}
+.empty{color:var(--mu);padding:8px 0}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav button{min-width:48px;min-height:48px;border:2px solid var(--ln);background:var(--sf);border-radius:12px;font-size:18px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+th,td{padding:8px 4px;text-align:right;border-bottom:1px solid var(--ln);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mu);font-weight:600}
+tr.today td{background:var(--ac2)}
+tfoot td{font-weight:800;border-bottom:0}
+.bar{height:12px;background:var(--ln);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ac)}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cfg input{font-size:17px;min-height:48px}
+.bn{background:var(--ac2);border-radius:12px;padding:12px;margin-top:14px}
+.bn b{display:block;font-size:16px;margin-bottom:4px}
+.gh{min-height:48px;padding:0 14px;border:2px solid var(--ac);background:transparent;color:var(--ac);border-radius:12px;font-weight:700}
+.ed{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.ed input{font-size:17px;min-height:48px;flex:1;min-width:90px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><h1>Mis propinas</h1><span class="mu" id="fecha"></span></div>
+  <div class="seg" role="tablist">
+    <button role="tab" id="t-hoy" aria-selected="true" data-tab="hoy">Hoy</button>
+    <button role="tab" id="t-sem" aria-selected="false" data-tab="sem">Semana</button>
+  </div>
+
+  <section id="v-hoy">
+    <div class="hero">
+      <div class="lbl">Llevas limpio hoy</div>
+      <div class="big" id="neto">$0.00</div>
+      <div class="stats">
+        <div>Ventas<b id="s-v">$0.00</b></div>
+        <div>Moche<b id="s-m">$0.00</b></div>
+        <div>Propinas<b id="s-p">$0.00</b></div>
+      </div>
+    </div>
+
+    <div id="form"><label class="t" for="cuenta">Total de la cuenta</label>
+    <input id="cuenta" inputmode="decimal" placeholder="0.00" autocomplete="off" style="width:100%;margin-top:8px">
+
+    <label class="t" for="prop">Propina</label>
+    <div class="row">
+      <button class="q" data-pct="10" aria-pressed="false">10%</button>
+      <button class="q" data-pct="15" aria-pressed="false">15%</button>
+      <input id="prop" inputmode="decimal" placeholder="Otro monto" autocomplete="off" aria-label="Propina en pesos" style="flex:2">
+    </div>
+    <div class="prev" id="prev"></div>
+    <button class="btn" id="add-c" style="width:100%;margin-top:12px">Agregar cuenta y propina</button></div>
+
+    <div id="cierre"></div>
+    <h2>Movimientos de hoy</h2>
+    <div id="lista"></div>
+  </section>
+
+  <section id="v-sem" hidden>
+    <div class="nav">
+      <button id="prevw" aria-label="Semana anterior">‹</button>
+      <div style="text-align:center"><b id="rango"></b><div class="mu" id="sub"></div></div>
+      <button id="nextw" aria-label="Semana siguiente">›</button>
+    </div>
+    <div class="hero" style="margin-top:14px">
+      <div class="lbl">Neto de la semana</div>
+      <div class="big" id="w-neto">$0.00</div>
+      <div class="stats">
+        <div>Ventas<b id="w-v">$0.00</b></div>
+        <div>Moche<b id="w-m">$0.00</b></div>
+        <div>Propinas<b id="w-p">$0.00</b></div>
+      </div>
+    </div>
+    <div id="metabox"></div>
+    <div id="cierre-w"></div>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Día</th><th>Ventas</th><th>Moche</th><th>Propinas</th><th>Neto</th></tr></thead>
+        <tbody id="dias"></tbody>
+      </table>
+    </div>
+    <h2>Ajustes</h2>
+    <div class="cfg">
+      <div><label class="mu" for="cfg-m">Moche (% de la cuenta)</label><input id="cfg-m" inputmode="decimal"></div>
+      <div><label class="mu" for="cfg-g">Meta semanal ($)</label><input id="cfg-g" inputmode="decimal" placeholder="Opcional"></div>
+    </div>
+    <h2>Respaldo</h2>
+    <p class="mu">Tus datos se guardan solo en este celular y no se envían a ningún lado. Haz un respaldo de vez en cuando, por si cambias de celular o se borran los datos del navegador.</p>
+    <div class="row">
+      <button class="btn" id="bk" style="flex:1">Respaldar datos</button>
+      <button class="gh" id="rs" style="flex:1">Restaurar</button>
+    </div>
+    <input type="file" id="rf" accept="application/json,.json" hidden>
+    <div class="prev" id="lb"></div>
+    <div class="prev" id="msg" role="status"></div>
+  </section>
+</main>
+<script>
+const KEY="mesero-propinas-v1";
+let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,editId=null;
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
+const $=id=>document.getElementById(id);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const money=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pad=n=>String(n).padStart(2,"0");
+const dkey=t=>{const d=new Date(t);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return n>0?n:0};
+function sums(l){let v=0,p=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;p+=e.tip||0}else p+=e.amount});const m=v*S.moche/100;return{v,p,m,n:p-m}}
+function wstart(o){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+o*7);return d}
+let pct=0;
+function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:Date.now()});save();render();return true}
+function tipNow(){const a=num($("cuenta").value);return pct?Math.round(a*pct)/100:num($("prop").value)}
+function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+", te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
+function setNeto(el,n){el.textContent=money(n);el.classList.toggle("neg",n<0)}
+function wkey(ts){const d=new Date(ts);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return dkey(d)}
+function locked(ts){return !!(S.closed.d[dkey(ts)]||S.closed.w[wkey(ts)])}
+function cbox(kind,key,c,n){const nm=kind==="d"?"día":"semana";
+  if(c)return `<div class="bn"><b>${kind==="d"?"Día cerrado":"Semana cerrada"}</b>Neto ${money(c.neto)}</div><button class="gh" style="margin-top:8px" data-reopen="${kind}" data-key="${key}">Reabrir ${nm}</button>`;
+  if(!n)return "";
+  return `<div class="bn"><b>Terminar ${nm}</b><button class="btn" style="width:100%;margin-top:8px" data-close="${kind}" data-key="${key}">Terminar ${nm}</button></div>`}
+function render(){
+  $("v-hoy").hidden=tab!=="hoy";$("v-sem").hidden=tab!=="sem";
+  $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");
+  $("fecha").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
+  if(tab==="hoy"){
+    const tk=dkey(Date.now()),l=S.entries.filter(e=>dkey(e.ts)===tk).sort((a,b)=>b.ts-a.ts),s=sums(l);
+    setNeto($("neto"),s.n);$("s-v").textContent=money(s.v);$("s-m").textContent=money(s.m);$("s-p").textContent=money(s.p);
+    $("form").hidden=locked(Date.now());
+    $("cierre").innerHTML=S.closed.w[wkey(Date.now())]?'<div class="bn"><b>Semana cerrada</b>Reábrela en la pestaña Semana para editar.</div>':cbox("d",tk,S.closed.d[tk],l.length);
+    $("lista").innerHTML=l.length?l.map(e=>{
+      const h=new Date(e.ts).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+      const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+", moche "+money(e.amount*S.moche/100):"Propina";
+      if(editId===String(e.id))return `<div class="item"><div class="ed"><input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
+      const lk=locked(e.ts);
+      return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t} · ${h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.</div>';
+  }else{
+    const st=wstart(off),en=new Date(st);en.setDate(st.getDate()+6);
+    const f=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+    $("rango").textContent=f(st)+" al "+f(en);$("sub").textContent=off===0?"Esta semana":off===-1?"Semana pasada":"";
+    $("nextw").disabled=off>=0;
+    const tk=dkey(Date.now());let all=[],rows="";
+    for(let i=0;i<7;i++){const d=new Date(st);d.setDate(st.getDate()+i);const k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);all=all.concat(l);const s=sums(l);
+      rows+=`<tr class="${k===tk?"today":""}"><td>${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
+    $("dias").innerHTML=rows;
+    const w=sums(all);setNeto($("w-neto"),w.n);$("w-v").textContent=money(w.v);$("w-m").textContent=money(w.m);$("w-p").textContent=money(w.p);
+    $("metabox").innerHTML=S.meta>0?`<h2>Meta de la semana</h2><div>Llevas ${money(w.n)} de ${money(S.meta)}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w.n/S.meta*100))}%"></i></div>`:"";
+    const wk=dkey(st);$("cierre-w").innerHTML=cbox("w",wk,S.closed.w[wk],all.length);
+    $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
+    if(document.activeElement!==$("cfg-m"))$("cfg-m").value=S.moche;
+    if(document.activeElement!==$("cfg-g"))$("cfg-g").value=S.meta||"";
+  }
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;render();return}
+  const p=e.target.closest("[data-pct]");if(p){const v=+p.dataset.pct;pct=pct===v?0:v;if(!pct)$("prop").value="";upd();return}
+  const c=e.target.closest("[data-close]");if(c){const k=c.dataset.close,key=c.dataset.key,l=S.entries.filter(x=>(k==="d"?dkey(x.ts):wkey(x.ts))===key);S.closed[k][key]={neto:sums(l).n,at:Date.now()};editId=null;save();render();return}
+  const r=e.target.closest("[data-reopen]");if(r){delete S.closed[r.dataset.reopen][r.dataset.key];save();render();return}
+  const ed=e.target.closest("[data-edit]");if(ed){editId=ed.dataset.edit;render();return}
+  const cn=e.target.closest("[data-cancel]");if(cn){editId=null;render();return}
+  const sv=e.target.closest("[data-save]");if(sv){const x=S.entries.find(y=>String(y.id)===sv.dataset.save),a=num($("ed-a").value);if(x&&a){x.amount=a;if(x.type==="cuenta")x.tip=num($("ed-t").value)}editId=null;save();render();return}
+  const d=e.target.closest("[data-del]");if(d){S.entries=S.entries.filter(x=>String(x.id)!==d.dataset.del);save();render()}
+});
+$("add-c").onclick=()=>{if(add($("cuenta").value,tipNow())){$("cuenta").value="";$("prop").value="";pct=0;upd()}};
+$("cuenta").addEventListener("input",upd);
+$("prop").addEventListener("input",()=>{pct=0;upd()});
+["cuenta","prop"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")$("add-c").click()}));
+$("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
+$("cfg-m").addEventListener("input",()=>{const v=parseFloat(String($("cfg-m").value).replace(",","."));if(v>=0&&v<=100){S.moche=v;save();render()}});
+$("cfg-g").addEventListener("input",()=>{S.meta=num($("cfg-g").value);save();render()});
+const msg=t=>{$("msg").textContent=t};
+async function backup(){
+  const name="propinas-respaldo-"+dkey(Date.now())+".json";
+  const file=new File([JSON.stringify(S,null,1)],name,{type:"application/json"});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Respaldo de propinas"});S.lastBackup=Date.now();save();render();msg("Respaldo guardado.");return}
+  }catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);S.lastBackup=Date.now();save();render();msg("Respaldo descargado.");
+}
+function restore(f){
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const p=JSON.parse(r.result);if(!p||!Array.isArray(p.entries))throw 0;
+    const ok=p.entries.filter(e=>e&&(e.type==="cuenta"||e.type==="propina")&&e.amount>0&&e.ts>0);
+    if(!confirm("Esto reemplaza lo que tienes ahora por el respaldo ("+ok.length+" movimientos). ¿Continuar?"))return;
+    S.entries=ok.map(e=>({id:e.id||Date.now()+Math.random(),type:e.type,amount:+e.amount,tip:+e.tip>0?+e.tip:0,ts:+e.ts}));
+    if(+p.moche>=0)S.moche=+p.moche;S.meta=+p.meta>0?+p.meta:0;
+    S.closed=p.closed&&p.closed.d&&p.closed.w?p.closed:{d:{},w:{}};
+    save();render();msg("Respaldo restaurado.");
+  }catch(e){msg("Ese archivo no parece un respaldo válido.")}};
+  r.readAsText(f);
+}
+$("bk").onclick=backup;
+$("rs").onclick=()=>$("rf").click();
+$("rf").addEventListener("change",e=>{const f=e.target.files[0];if(f)restore(f);e.target.value=""});
+if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+MIS PROPINAS - app web instalable
+=================================
+
+Qué contiene esta carpeta
+- index.html            la app
+- manifest.webmanifest  nombre, colores e íconos para instalarla
+- sw.js                 hace que funcione sin internet
+- icon-192.png, icon-512.png, apple-touch-icon.png   íconos
+
+IMPORTANTE: para poder instalarla en el iPhone tiene que estar publicada en
+un sitio con https. Abrir index.html directo desde el celular o la
+computadora no sirve para instalarla. Los dos servicios de abajo son gratis
+y dan https automáticamente. Los pasos exactos pueden cambiar con el tiempo.
+
+OPCIÓN A: Netlify (la más rápida)
+1. Entra a netlify.com y busca la opción de subir una carpeta arrastrándola
+   (se llama "Drop" o "Deploy manually").
+2. Arrastra esta carpeta completa (la que contiene index.html).
+3. Te da un enlace con https. Ese es el enlace de tu app.
+
+OPCIÓN B: GitHub Pages
+1. Crea una cuenta en github.com y un repositorio nuevo.
+2. Sube estos archivos al repositorio (index.html debe quedar en la raíz).
+3. En Settings > Pages, elige publicar desde la rama principal.
+4. Espera unos minutos: te da un enlace con https.
+(El código quedaría visible si el repositorio es público. No hay datos
+personales en él: tus propinas solo viven en tu celular.)
+
+Instalarla en el iPhone
+1. Abre el enlace en Safari.
+2. Toca el botón de compartir > "Agregar a pantalla de inicio".
+3. Ábrela desde el ícono. Debe verse a pantalla completa.
+4. Pruébala una vez con el internet apagado, para comprobar que abre.
+
+Tus datos
+- Se guardan en el celular, por cada dirección web. Los datos de la versión de
+  prueba de Claude NO pasan a esta dirección nueva. Si no tienen valor, empieza
+  de cero.
+- Usa "Respaldar datos" (pestaña Semana, abajo) cada semana o al cerrar la
+  semana. Guarda el archivo en Archivos o iCloud, o envíatelo por correo.
+- "Restaurar" carga un respaldo en cualquier celular.
+
+Actualizar la app
+- Sube los archivos nuevos al mismo sitio. La app trae la versión nueva cuando
+  la abres con internet. Si sigue saliendo la anterior, ciérrala por completo y
+  ábrela otra vez.
