@@ -71,6 +71,7 @@ tfoot td{font-weight:800;border-bottom:0}
 .bn{background:var(--ac2);border-radius:12px;padding:12px;margin-top:14px}
 .bn b{display:block;font-size:16px;margin-bottom:4px}
 .gh{min-height:48px;padding:0 14px;border:2px solid var(--ac);background:transparent;color:var(--ac);border-radius:12px;font-weight:700}
+.avg{font-size:13px;margin-top:10px;opacity:.95}
 .ed{display:flex;gap:8px;flex-wrap:wrap;width:100%}
 .ed input{font-size:17px;min-height:48px;flex:1;min-width:90px}
 </style>
@@ -92,6 +93,7 @@ tfoot td{font-weight:800;border-bottom:0}
         <div>Moche<b id="s-m">$0.00</b></div>
         <div>Propinas<b id="s-p">$0.00</b></div>
       </div>
+      <div class="avg" id="avg-h"></div>
     </div>
 
     <div id="form"><label class="t" for="cuenta">Total de la cuenta</label>
@@ -125,12 +127,14 @@ tfoot td{font-weight:800;border-bottom:0}
         <div>Moche<b id="w-m">$0.00</b></div>
         <div>Propinas<b id="w-p">$0.00</b></div>
       </div>
+      <div class="avg" id="avg-w"></div>
     </div>
+    <div id="avg-g"></div>
     <div id="metabox"></div>
     <div id="cierre-w"></div>
     <div class="wrap">
       <table>
-        <thead><tr><th>Día</th><th>Ventas</th><th>Moche</th><th>Propinas</th><th>Neto</th></tr></thead>
+        <thead><tr><th>Día</th><th>Ventas</th><th>Moche</th><th>Propinas</th><th>%</th><th>Neto</th></tr></thead>
         <tbody id="dias"></tbody>
       </table>
     </div>
@@ -165,8 +169,11 @@ function wstart(o){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-
 let pct=0;
 function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:Date.now()});save();render();return true}
 function tipNow(){const a=num($("cuenta").value);return pct?Math.round(a*pct)/100:num($("prop").value)}
-function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+", te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
+function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+" ("+pc(pctOf(a,t))+"), te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
 function setNeto(el,n){el.textContent=money(n);el.classList.toggle("neg",n<0)}
+const pc=v=>v==null?"-":v.toLocaleString("es-MX",{maximumFractionDigits:1})+"%";
+const pctOf=(a,t)=>a>0?t/a*100:null;
+function tavg(l){let v=0,t=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;t+=e.tip||0}});return v>0?t/v*100:null}
 function wkey(ts){const d=new Date(ts);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return dkey(d)}
 function locked(ts){return !!(S.closed.d[dkey(ts)]||S.closed.w[wkey(ts)])}
 function cbox(kind,key,c,n){const nm=kind==="d"?"día":"semana";
@@ -180,11 +187,12 @@ function render(){
   if(tab==="hoy"){
     const tk=dkey(Date.now()),l=S.entries.filter(e=>dkey(e.ts)===tk).sort((a,b)=>b.ts-a.ts),s=sums(l);
     setNeto($("neto"),s.n);$("s-v").textContent=money(s.v);$("s-m").textContent=money(s.m);$("s-p").textContent=money(s.p);
+    $("avg-h").textContent=tavg(l)==null?"":"Propina promedio de hoy: "+pc(tavg(l));
     $("form").hidden=locked(Date.now());
     $("cierre").innerHTML=S.closed.w[wkey(Date.now())]?'<div class="bn"><b>Semana cerrada</b>Reábrela en la pestaña Semana para editar.</div>':cbox("d",tk,S.closed.d[tk],l.length);
     $("lista").innerHTML=l.length?l.map(e=>{
       const h=new Date(e.ts).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-      const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+", moche "+money(e.amount*S.moche/100):"Propina";
+      const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+" ("+pc(pctOf(e.amount,e.tip||0))+"), moche "+money(e.amount*S.moche/100):"Propina";
       if(editId===String(e.id))return `<div class="item"><div class="ed"><input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
       const lk=locked(e.ts);
       return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t} · ${h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.</div>';
@@ -195,9 +203,12 @@ function render(){
     $("nextw").disabled=off>=0;
     const tk=dkey(Date.now());let all=[],rows="";
     for(let i=0;i<7;i++){const d=new Date(st);d.setDate(st.getDate()+i);const k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);all=all.concat(l);const s=sums(l);
-      rows+=`<tr class="${k===tk?"today":""}"><td>${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
+      rows+=`<tr class="${k===tk?"today":""}"><td>${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?pc(tavg(l)):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
     $("dias").innerHTML=rows;
     const w=sums(all);setNeto($("w-neto"),w.n);$("w-v").textContent=money(w.v);$("w-m").textContent=money(w.m);$("w-p").textContent=money(w.p);
+    $("avg-w").textContent=tavg(all)==null?"":"Propina promedio de la semana: "+pc(tavg(all));
+    const nc=S.entries.filter(e=>e.type==="cuenta").length;
+    $("avg-g").innerHTML=nc?`<div class="bn"><b>Promedio general: ${pc(tavg(S.entries))}</b>De propina sobre el total de tus ${nc} cuentas guardadas.</div>`:"";
     $("metabox").innerHTML=S.meta>0?`<h2>Meta de la semana</h2><div>Llevas ${money(w.n)} de ${money(S.meta)}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w.n/S.meta*100))}%"></i></div>`:"";
     const wk=dkey(st);$("cierre-w").innerHTML=cbox("w",wk,S.closed.w[wk],all.length);
     $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
