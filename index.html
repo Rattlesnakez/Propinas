@@ -71,6 +71,7 @@ tfoot td{font-weight:800;border-bottom:0}
 .bn{background:var(--ac2);border-radius:12px;padding:12px;margin-top:14px}
 .bn b{display:block;font-size:16px;margin-bottom:4px}
 .gh{min-height:48px;padding:0 14px;border:2px solid var(--ac);background:transparent;color:var(--ac);border-radius:12px;font-weight:700}
+.lk{background:none;border:0;color:var(--ac);font:inherit;font-weight:700;text-decoration:underline;padding:6px 0;min-height:36px;text-align:left}
 .avg{font-size:13px;margin-top:10px;opacity:.95}
 .ed{display:flex;gap:8px;flex-wrap:wrap;width:100%}
 .ed input{font-size:17px;min-height:48px;flex:1;min-width:90px}
@@ -85,8 +86,13 @@ tfoot td{font-weight:800;border-bottom:0}
   </div>
 
   <section id="v-hoy">
+    <div class="nav" style="margin-bottom:12px">
+      <button id="pd" aria-label="Día anterior">‹</button>
+      <div style="text-align:center"><b id="dl"></b><div class="mu" id="ds"></div></div>
+      <button id="nd" aria-label="Día siguiente">›</button>
+    </div>
     <div class="hero">
-      <div class="lbl">Llevas limpio hoy</div>
+      <div class="lbl" id="lbl-h">Llevas limpio hoy</div>
       <div class="big" id="neto">$0.00</div>
       <div class="stats">
         <div>Ventas<b id="s-v">$0.00</b></div>
@@ -109,7 +115,7 @@ tfoot td{font-weight:800;border-bottom:0}
     <button class="btn" id="add-c" style="width:100%;margin-top:12px">Agregar cuenta y propina</button></div>
 
     <div id="cierre"></div>
-    <h2>Movimientos de hoy</h2>
+    <h2 id="h-mov">Movimientos de hoy</h2>
     <div id="lista"></div>
   </section>
 
@@ -156,7 +162,7 @@ tfoot td{font-weight:800;border-bottom:0}
 </main>
 <script>
 const KEY="mesero-propinas-v1";
-let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,editId=null;
+let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,vo=0,editId=null;
 try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
 const $=id=>document.getElementById(id);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -167,10 +173,11 @@ const num=v=>{const n=parseFloat(String(v).replace(",","."));return n>0?n:0};
 function sums(l){let v=0,p=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;p+=e.tip||0}else p+=e.amount});const m=v*S.moche/100;return{v,p,m,n:p-m}}
 function wstart(o){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+o*7);return d}
 let pct=0;
-function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:Date.now()});save();render();return true}
+function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:vo?vdate().getTime():Date.now(),man:vo>0?1:0});save();render();return true}
 function tipNow(){const a=num($("cuenta").value);return pct?Math.round(a*pct)/100:num($("prop").value)}
 function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+" ("+pc(pctOf(a,t))+"), te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
 function setNeto(el,n){el.textContent=money(n);el.classList.toggle("neg",n<0)}
+function vdate(){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-vo);return d}
 const pc=v=>v==null?"-":v.toLocaleString("es-MX",{maximumFractionDigits:1})+"%";
 const pctOf=(a,t)=>a>0?t/a*100:null;
 function tavg(l){let v=0,t=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;t+=e.tip||0}});return v>0?t/v*100:null}
@@ -185,17 +192,22 @@ function render(){
   $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");
   $("fecha").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
   if(tab==="hoy"){
-    const tk=dkey(Date.now()),l=S.entries.filter(e=>dkey(e.ts)===tk).sort((a,b)=>b.ts-a.ts),s=sums(l);
-    setNeto($("neto"),s.n);$("s-v").textContent=money(s.v);$("s-m").textContent=money(s.m);$("s-p").textContent=money(s.p);
-    $("avg-h").textContent=tavg(l)==null?"":"Propina promedio de hoy: "+pc(tavg(l));
-    $("form").hidden=locked(Date.now());
-    $("cierre").innerHTML=S.closed.w[wkey(Date.now())]?'<div class="bn"><b>Semana cerrada</b>Reábrela en la pestaña Semana para editar.</div>':cbox("d",tk,S.closed.d[tk],l.length);
+    const vd=vdate(),tk=dkey(vd),l=S.entries.filter(e=>dkey(e.ts)===tk).sort((a,b)=>b.ts-a.ts),s=sums(l);
+    setNeto($("neto"),s.n);
+    $("lbl-h").textContent=vo?"Neto de este día":"Llevas limpio hoy";
+    $("h-mov").textContent=vo?"Movimientos del día":"Movimientos de hoy";
+    $("dl").textContent=vd.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+    $("ds").textContent=vo===0?"Hoy":vo===1?"Ayer":"";
+    $("nd").disabled=vo<=0;$("s-v").textContent=money(s.v);$("s-m").textContent=money(s.m);$("s-p").textContent=money(s.p);
+    $("avg-h").textContent=tavg(l)==null?"":(vo?"Propina promedio del día: ":"Propina promedio de hoy: ")+pc(tavg(l));
+    $("form").hidden=locked(vd.getTime());
+    $("cierre").innerHTML=S.closed.w[wkey(vd.getTime())]?'<div class="bn"><b>Semana cerrada</b>Reábrela en la pestaña Semana para editar.</div>':cbox("d",tk,S.closed.d[tk],l.length);
     $("lista").innerHTML=l.length?l.map(e=>{
       const h=new Date(e.ts).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
       const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+" ("+pc(pctOf(e.amount,e.tip||0))+"), moche "+money(e.amount*S.moche/100):"Propina";
       if(editId===String(e.id))return `<div class="item"><div class="ed"><input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
       const lk=locked(e.ts);
-      return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t} · ${h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.</div>';
+      return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t}${e.man?"":" · "+h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">'+(vo?"No hay movimientos este día.":"Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.")+'</div>';
   }else{
     const st=wstart(off),en=new Date(st);en.setDate(st.getDate()+6);
     const f=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
@@ -203,7 +215,7 @@ function render(){
     $("nextw").disabled=off>=0;
     const tk=dkey(Date.now());let all=[],rows="";
     for(let i=0;i<7;i++){const d=new Date(st);d.setDate(st.getDate()+i);const k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);all=all.concat(l);const s=sums(l);
-      rows+=`<tr class="${k===tk?"today":""}"><td>${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?pc(tavg(l)):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
+      rows+=`<tr class="${k===tk?"today":""}"><td><button class="lk" data-day="${k}">${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</button></td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?pc(tavg(l)):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
     $("dias").innerHTML=rows;
     const w=sums(all);setNeto($("w-neto"),w.n);$("w-v").textContent=money(w.v);$("w-m").textContent=money(w.m);$("w-p").textContent=money(w.p);
     $("avg-w").textContent=tavg(all)==null?"":"Propina promedio de la semana: "+pc(tavg(all));
@@ -217,8 +229,9 @@ function render(){
   }
 }
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;render();return}
+  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;render();return}
   const p=e.target.closest("[data-pct]");if(p){const v=+p.dataset.pct;pct=pct===v?0:v;if(!pct)$("prop").value="";upd();return}
+  const dy=e.target.closest("[data-day]");if(dy){const[Y,M,D]=dy.dataset.day.split("-").map(Number),t0=new Date(),t1=new Date(Y,M-1,D,12);t0.setHours(12,0,0,0);if(t1>t0)return;vo=Math.round((t0-t1)/864e5);tab="hoy";editId=null;render();return}
   const c=e.target.closest("[data-close]");if(c){const k=c.dataset.close,key=c.dataset.key,l=S.entries.filter(x=>(k==="d"?dkey(x.ts):wkey(x.ts))===key);S.closed[k][key]={neto:sums(l).n,at:Date.now()};editId=null;save();render();return}
   const r=e.target.closest("[data-reopen]");if(r){delete S.closed[r.dataset.reopen][r.dataset.key];save();render();return}
   const ed=e.target.closest("[data-edit]");if(ed){editId=ed.dataset.edit;render();return}
@@ -230,6 +243,8 @@ $("add-c").onclick=()=>{if(add($("cuenta").value,tipNow())){$("cuenta").value=""
 $("cuenta").addEventListener("input",upd);
 $("prop").addEventListener("input",()=>{pct=0;upd()});
 ["cuenta","prop"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")$("add-c").click()}));
+$("pd").onclick=()=>{vo++;editId=null;render()};
+$("nd").onclick=()=>{if(vo>0){vo--;editId=null;render()}};
 $("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
 $("cfg-m").addEventListener("input",()=>{const v=parseFloat(String($("cfg-m").value).replace(",","."));if(v>=0&&v<=100){S.moche=v;save();render()}});
 $("cfg-g").addEventListener("input",()=>{S.meta=num($("cfg-g").value);save();render()});
