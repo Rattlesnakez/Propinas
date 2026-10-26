@@ -23,6 +23,9 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--tx);font:16px/1.4
 [hidden]{display:none!important}
 main{max-width:480px;margin:0 auto;padding:16px 16px 48px}
 h1{font-size:20px;margin:0}
+#welcome{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+#welcome[hidden]{display:none}
+#welcome .box{width:100%;max-width:380px;display:grid;gap:14px}
 h2{font-size:15px;margin:24px 0 8px;font-weight:700}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .mu{color:var(--mu);font-size:13px}
@@ -78,8 +81,16 @@ tfoot td{font-weight:800;border-bottom:0}
 </style>
 </head>
 <body>
+<div id="welcome" role="dialog" aria-modal="true" aria-labelledby="w-t" hidden>
+  <div class="box">
+    <h1 id="w-t" style="font-size:26px">¡Bienvenido!</h1>
+    <label class="mu" for="w-n" style="font-size:16px">¿Cómo te llamas?</label>
+    <input id="w-n" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" style="width:100%">
+    <button class="btn" id="w-ok" style="width:100%">Continuar</button>
+  </div>
+</div>
 <main>
-  <div class="top"><h1>Mis propinas</h1><span class="mu" id="fecha"></span></div>
+  <div class="top"><h1 id="hola">Mis propinas</h1><span class="mu" id="fecha"></span></div>
   <div class="seg" role="tablist">
     <button role="tab" id="t-hoy" aria-selected="true" data-tab="hoy">Hoy</button>
     <button role="tab" id="t-sem" aria-selected="false" data-tab="sem">Semana</button>
@@ -136,7 +147,6 @@ tfoot td{font-weight:800;border-bottom:0}
       </div>
       <div class="avg" id="avg-w"></div>
     </div>
-    <div id="avg-g"></div>
     <div id="metabox"></div>
     <div id="cierre-w"></div>
     <div class="wrap">
@@ -151,6 +161,7 @@ tfoot td{font-weight:800;border-bottom:0}
       <div><label class="mu" for="cfg-g">Meta semanal ($)</label><input id="cfg-g" inputmode="decimal" placeholder="Opcional"></div>
     </div>
     <div id="mlock"></div>
+    <div style="margin-top:14px"><label class="mu" for="cfg-n">Tu nombre</label><input id="cfg-n" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" style="width:100%;font-size:17px;min-height:48px"></div>
     <h2>Respaldo</h2>
     <p class="mu">Tus datos se guardan solo en este celular y no se envían a ningún lado. Haz un respaldo de vez en cuando, por si cambias de celular o se borran los datos del navegador.</p>
     <div class="row">
@@ -191,8 +202,8 @@ tfoot td{font-weight:800;border-bottom:0}
 <script>
 const KEY="mesero-propinas-v1";
 const PW="1129";
-let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="";
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
+let S={name:"",entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="";
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(typeof p.name==="string")S.name=p.name.trim().slice(0,30);if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
 const $=id=>document.getElementById(id);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const money=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -223,7 +234,14 @@ function cbox(kind,key,c,n){const nm=kind==="d"?"día":"semana";
   if(c)return `<div class="bn"><b>${kind==="d"?"Día cerrado":"Semana cerrada"}</b>Neto ${money(c.neto)}</div><button class="gh" style="margin-top:8px" data-reopen="${kind}" data-key="${key}">Reabrir ${nm}</button>`;
   if(!n)return "";
   return `<div class="bn"><b>Terminar ${nm}</b><button class="btn" style="width:100%;margin-top:8px" data-close="${kind}" data-key="${key}">Terminar ${nm}</button></div>`}
+function hello(){
+  const n=(S.name||"").trim();
+  $("hola").textContent=n?"Hola, "+n:"Mis propinas";
+  $("welcome").hidden=!!n;
+  if(document.activeElement!==$("cfg-n"))$("cfg-n").value=S.name||"";
+}
 function render(){
+  hello();
   $("v-hoy").hidden=tab!=="hoy";$("v-sem").hidden=tab!=="sem";$("v-mes").hidden=tab!=="mes";
   $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");$("t-mes").setAttribute("aria-selected",tab==="mes");
   $("fecha").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
@@ -256,8 +274,6 @@ function render(){
     $("dias").innerHTML=rows;
     const w=sums(all);setNeto($("w-neto"),w.n);$("w-v").textContent=money(w.v);$("w-m").textContent=money(w.m);$("w-p").textContent=money(w.p);
     $("avg-w").textContent=cnt(all)?cnt(all)+(cnt(all)===1?" cuenta":" cuentas")+" · propina promedio: "+pc(tavg(all)):"";
-    const nc=S.entries.filter(e=>e.type==="cuenta").length;
-    $("avg-g").innerHTML=nc?`<div class="bn"><b>Promedio general: ${pc(tavg(S.entries))}</b>De propina sobre el total de tus ${nc} cuentas guardadas.</div>`:"";
     $("metabox").innerHTML=S.meta>0?`<h2>Meta de la semana</h2><div>Llevas ${money(w.n)} de ${money(S.meta)}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w.n/S.meta*100))}%"></i></div>`:"";
     const wk=dkey(st);$("cierre-w").innerHTML=cbox("w",wk,S.closed.w[wk],all.length);
     $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
@@ -305,6 +321,10 @@ $("nd").onclick=()=>{if(vo>0){vo--;editId=null;render()}};
 $("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
 $("prevm").onclick=()=>{mo--;render()};$("nextm").onclick=()=>{if(mo<0){mo++;render()}};
 document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const b=e.target.id==="pw"?document.querySelector("[data-mok]"):(e.target.id==="cfg-m"&&mstep===2)?document.querySelector("[data-msave]"):null;if(b)b.click()});
+$("w-ok").onclick=()=>{const n=$("w-n").value.trim();if(!n){$("w-n").focus();return}S.name=n.slice(0,30);save();render()};
+$("w-n").addEventListener("keydown",e=>{if(e.key==="Enter")$("w-ok").click()});
+$("cfg-n").addEventListener("input",()=>{const v=$("cfg-n").value.trim();if(v){S.name=v.slice(0,30);save();$("hola").textContent="Hola, "+S.name}});
+$("cfg-n").addEventListener("change",()=>{$("cfg-n").value=S.name||"";hello()});
 $("cfg-g").addEventListener("input",()=>{S.meta=num($("cfg-g").value);save();render()});
 const msg=t=>{$("msg").textContent=t};
 async function backup(){
@@ -334,6 +354,7 @@ $("rs").onclick=()=>$("rf").click();
 $("rf").addEventListener("change",e=>{const f=e.target.files[0];if(f)restore(f);e.target.value=""});
 if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 render();
+if(!S.name)setTimeout(()=>$("w-n").focus(),60);
 </script>
 </body>
 </html>
