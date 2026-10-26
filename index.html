@@ -32,6 +32,8 @@ h2{font-size:15px;margin:24px 0 8px;font-weight:700}
 .seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--ln);padding:4px;border-radius:12px;margin:14px 0}
 .seg button{border:0;background:transparent;color:var(--mu);font:inherit;font-weight:700;min-height:44px;border-radius:9px}
 .seg button[aria-selected="true"]{background:var(--sf);color:var(--tx)}
+.seg[hidden]{display:none}
+.gear{background:transparent;border:0;color:var(--mu);font-size:24px;min-width:44px;min-height:44px;border-radius:10px;padding:0}
 button,input{font:inherit;color:inherit}
 button:focus-visible,input:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
 .hero{background:var(--ac);color:#fff;border-radius:18px;padding:18px}
@@ -90,8 +92,8 @@ tfoot td{font-weight:800;border-bottom:0}
   </div>
 </div>
 <main>
-  <div class="top"><h1 id="hola">Mis propinas</h1><span class="mu" id="fecha"></span></div>
-  <div class="seg" role="tablist">
+  <div class="top" style="align-items:center"><h1 id="hola">Mis propinas</h1><div style="display:flex;align-items:center;gap:2px"><span class="mu" id="fecha"></span><button class="gear" id="aj-btn" aria-label="Ajustes" title="Ajustes">⚙&#xFE0E;</button></div></div>
+  <div class="seg" id="tabs" role="tablist">
     <button role="tab" id="t-hoy" aria-selected="true" data-tab="hoy">Hoy</button>
     <button role="tab" id="t-sem" aria-selected="false" data-tab="sem">Semana</button>
     <button role="tab" id="t-mes" aria-selected="false" data-tab="mes">Mes</button>
@@ -155,22 +157,6 @@ tfoot td{font-weight:800;border-bottom:0}
         <tbody id="dias"></tbody>
       </table>
     </div>
-    <h2>Ajustes</h2>
-    <div class="cfg">
-      <div><label class="mu" for="cfg-m">Moche (% de la cuenta)</label><input id="cfg-m" inputmode="decimal" readonly></div>
-      <div><label class="mu" for="cfg-g">Meta semanal ($)</label><input id="cfg-g" inputmode="decimal" placeholder="Opcional"></div>
-    </div>
-    <div id="mlock"></div>
-    <div style="margin-top:14px"><label class="mu" for="cfg-n">Tu nombre</label><input id="cfg-n" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" style="width:100%;font-size:17px;min-height:48px"></div>
-    <h2>Respaldo</h2>
-    <p class="mu">Tus datos se guardan solo en este celular y no se envían a ningún lado. Haz un respaldo de vez en cuando, por si cambias de celular o se borran los datos del navegador.</p>
-    <div class="row">
-      <button class="btn" id="bk" style="flex:1">Respaldar datos</button>
-      <button class="gh" id="rs" style="flex:1">Restaurar</button>
-    </div>
-    <input type="file" id="rf" accept="application/json,.json" hidden>
-    <div class="prev" id="lb"></div>
-    <div class="prev" id="msg" role="status"></div>
   </section>
 
   <section id="v-mes" hidden>
@@ -198,11 +184,34 @@ tfoot td{font-weight:800;border-bottom:0}
     </div>
     <div class="empty" id="m-empty"></div>
   </section>
+
+  <section id="v-aj" hidden>
+    <div class="nav" style="margin-bottom:6px">
+      <button id="aj-back" aria-label="Volver">‹</button>
+      <div style="text-align:center"><b>Ajustes</b></div>
+      <span style="width:48px"></span>
+    </div>
+    <div class="cfg">
+      <div><label class="mu" for="cfg-m">Moche (% de la cuenta)</label><input id="cfg-m" inputmode="decimal" readonly></div>
+      <div><label class="mu" for="cfg-g">Meta semanal ($)</label><input id="cfg-g" inputmode="decimal" placeholder="Opcional"></div>
+    </div>
+    <div id="mlock"></div>
+    <div style="margin-top:14px"><label class="mu" for="cfg-n">Tu nombre</label><input id="cfg-n" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" style="width:100%;font-size:17px;min-height:48px"></div>
+    <h2>Respaldo</h2>
+    <p class="mu">Tus datos se guardan solo en este celular y no se envían a ningún lado. Haz un respaldo de vez en cuando, por si cambias de celular o se borran los datos del navegador.</p>
+    <div class="row">
+      <button class="btn" id="bk" style="flex:1">Respaldar datos</button>
+      <button class="gh" id="rs" style="flex:1">Restaurar</button>
+    </div>
+    <input type="file" id="rf" accept="application/json,.json" hidden>
+    <div class="prev" id="lb"></div>
+    <div class="prev" id="msg" role="status"></div>
+  </section>
 </main>
 <script>
 const KEY="mesero-propinas-v1";
 const PW="1129";
-let S={name:"",entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="";
+let S={name:"",entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="",aj=false;
 try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(typeof p.name==="string")S.name=p.name.trim().slice(0,30);if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
 const $=id=>document.getElementById(id);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -240,9 +249,15 @@ function hello(){
   $("welcome").hidden=!!n;
   if(document.activeElement!==$("cfg-n"))$("cfg-n").value=S.name||"";
 }
+function ajRender(){
+  $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
+  $("cfg-m").readOnly=mstep!==2;if(mstep!==2&&document.activeElement!==$("cfg-m"))$("cfg-m").value=S.moche;mrender();
+  if(document.activeElement!==$("cfg-g"))$("cfg-g").value=S.meta||"";
+}
 function render(){
   hello();
-  $("v-hoy").hidden=tab!=="hoy";$("v-sem").hidden=tab!=="sem";$("v-mes").hidden=tab!=="mes";
+  if(aj)ajRender();
+  $("v-hoy").hidden=aj||tab!=="hoy";$("v-sem").hidden=aj||tab!=="sem";$("v-mes").hidden=aj||tab!=="mes";$("v-aj").hidden=!aj;$("tabs").hidden=aj;
   $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");$("t-mes").setAttribute("aria-selected",tab==="mes");
   $("fecha").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
   if(tab==="hoy"){
@@ -276,9 +291,6 @@ function render(){
     $("avg-w").textContent=cnt(all)?cnt(all)+(cnt(all)===1?" cuenta":" cuentas")+" · propina promedio: "+pc(tavg(all)):"";
     $("metabox").innerHTML=S.meta>0?`<h2>Meta de la semana</h2><div>Llevas ${money(w.n)} de ${money(S.meta)}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w.n/S.meta*100))}%"></i></div>`:"";
     const wk=dkey(st);$("cierre-w").innerHTML=cbox("w",wk,S.closed.w[wk],all.length);
-    $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
-    $("cfg-m").readOnly=mstep!==2;if(mstep!==2&&document.activeElement!==$("cfg-m"))$("cfg-m").value=S.moche;mrender();
-    if(document.activeElement!==$("cfg-g"))$("cfg-g").value=S.meta||"";
   }else{
     const b=new Date();b.setHours(12,0,0,0);b.setDate(1);b.setMonth(b.getMonth()+mo);
     const Y=b.getFullYear(),M=b.getMonth(),dim=new Date(Y,M+1,0).getDate(),tk=dkey(Date.now());
@@ -297,7 +309,7 @@ function render(){
   }
 }
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;delId=null;mstep=0;mmsg="";render();return}
+  const t=e.target.closest("[data-tab]");if(t){aj=false;tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;delId=null;mstep=0;mmsg="";render();return}
   const p=e.target.closest("[data-pct]");if(p){const v=+p.dataset.pct;pct=pct===v?0:v;if(!pct)$("prop").value="";upd();return}
   const dy=e.target.closest("[data-day]");if(dy){const[Y,M,D]=dy.dataset.day.split("-").map(Number),t0=new Date(),t1=new Date(Y,M-1,D,12);t0.setHours(12,0,0,0);if(t1>t0)return;vo=Math.round((t0-t1)/864e5);tab="hoy";editId=null;render();return}
   const c=e.target.closest("[data-close]");if(c){const k=c.dataset.close,key=c.dataset.key,l=S.entries.filter(x=>(k==="d"?dkey(x.ts):wkey(x.ts))===key);S.closed[k][key]={neto:sums(l).n,at:Date.now()};editId=null;save();render();return}
@@ -321,6 +333,8 @@ $("nd").onclick=()=>{if(vo>0){vo--;editId=null;render()}};
 $("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
 $("prevm").onclick=()=>{mo--;render()};$("nextm").onclick=()=>{if(mo<0){mo++;render()}};
 document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const b=e.target.id==="pw"?document.querySelector("[data-mok]"):(e.target.id==="cfg-m"&&mstep===2)?document.querySelector("[data-msave]"):null;if(b)b.click()});
+$("aj-btn").onclick=()=>{aj=!aj;mstep=0;mmsg="";render();window.scrollTo(0,0)};
+$("aj-back").onclick=()=>{aj=false;mstep=0;mmsg="";render();window.scrollTo(0,0)};
 $("w-ok").onclick=()=>{const n=$("w-n").value.trim();if(!n){$("w-n").focus();return}S.name=n.slice(0,30);save();render()};
 $("w-n").addEventListener("keydown",e=>{if(e.key==="Enter")$("w-ok").click()});
 $("cfg-n").addEventListener("input",()=>{const v=$("cfg-n").value.trim();if(v){S.name=v.slice(0,30);save();$("hola").textContent="Hola, "+S.name}});
