@@ -177,7 +177,7 @@ tfoot td{font-weight:800;border-bottom:0}
     </div>
     <div class="wrap">
       <table>
-        <thead><tr><th>Día</th><th>Ctas</th><th>Ventas</th><th>Propinas</th><th>Neto</th></tr></thead>
+        <thead><tr><th>Semana</th><th>Ctas</th><th>Ventas</th><th>Propinas</th><th>Neto</th></tr></thead>
         <tbody id="mdias"></tbody>
         <tfoot id="mtot"></tfoot>
       </table>
@@ -297,9 +297,15 @@ function render(){
     $("mrango").textContent=b.toLocaleDateString("es-MX",{month:"long",year:"numeric"});
     $("msub").textContent=mo===0?"Este mes":mo===-1?"Mes pasado":"";
     $("nextm").disabled=mo>=0;
-    let all=[],rows="",dw=0;
-    for(let i=1;i<=dim;i++){const d=new Date(Y,M,i,12),k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);if(!l.length)continue;dw++;all=all.concat(l);const s=sums(l);
-      rows+=`<tr class="${k===tk?"today":""}"><td><button class="lk" data-day="${k}">${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</button></td><td>${cnt(l)||"-"}</td><td>${money(s.v)}</td><td>${money(s.p)}</td><td>${money(s.n)}</td></tr>`}
+    let all=[],rows="";const days=new Set(),groups={},cw=wkey(Date.now());
+    S.entries.forEach(e=>{const d=new Date(e.ts);if(d.getFullYear()!==Y||d.getMonth()!==M)return;const k=wkey(e.ts);(groups[k]=groups[k]||[]).push(e);days.add(dkey(e.ts));all.push(e)});
+    Object.keys(groups).sort().forEach(k=>{
+      const[yy,mm,dd]=k.split("-").map(Number),mon=new Date(yy,mm-1,dd,12),sun=new Date(yy,mm-1,dd+6,12),first=new Date(Y,M,1,12),last=new Date(Y,M,dim,12);
+      const a=mon<first?first:mon,z=sun>last?last:sun,mn=z.toLocaleDateString("es-MX",{month:"short"});
+      const lab=a.getDate()===z.getDate()?a.getDate()+" "+mn:a.getDate()+"–"+z.getDate()+" "+mn;
+      const l=groups[k],s2=sums(l);
+      rows+=`<tr class="${k===cw?"today":""}"><td><button class="lk" data-wk="${k}">${lab}</button></td><td>${cnt(l)||"-"}</td><td>${money(s2.v)}</td><td>${money(s2.p)}</td><td>${money(s2.n)}</td></tr>`});
+    const dw=days.size;
     const w=sums(all),nc=cnt(all);
     setNeto($("m-neto"),w.n);$("m-v").textContent=money(w.v);$("m-m").textContent=money(w.m);$("m-p").textContent=money(w.p);
     $("avg-m").textContent=nc?nc+(nc===1?" cuenta":" cuentas")+" en "+dw+(dw===1?" día":" días")+" · propina promedio: "+pc(tavg(all)):"";
@@ -311,6 +317,7 @@ function render(){
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-tab]");if(t){aj=false;tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;delId=null;mstep=0;mmsg="";render();return}
   const p=e.target.closest("[data-pct]");if(p){const v=+p.dataset.pct;pct=pct===v?0:v;if(!pct)$("prop").value="";upd();return}
+  const wb=e.target.closest("[data-wk]");if(wb){const[yy,mm,dd]=wb.dataset.wk.split("-").map(Number),mon=new Date(yy,mm-1,dd,12);off=Math.round((mon-wstart(0))/(7*864e5));if(off>0)off=0;tab="sem";editId=null;render();return}
   const dy=e.target.closest("[data-day]");if(dy){const[Y,M,D]=dy.dataset.day.split("-").map(Number),t0=new Date(),t1=new Date(Y,M-1,D,12);t0.setHours(12,0,0,0);if(t1>t0)return;vo=Math.round((t0-t1)/864e5);tab="hoy";editId=null;render();return}
   const c=e.target.closest("[data-close]");if(c){const k=c.dataset.close,key=c.dataset.key,l=S.entries.filter(x=>(k==="d"?dkey(x.ts):wkey(x.ts))===key);S.closed[k][key]={neto:sums(l).n,at:Date.now()};editId=null;save();render();return}
   const r=e.target.closest("[data-reopen]");if(r){delete S.closed[r.dataset.reopen][r.dataset.key];save();render();return}
