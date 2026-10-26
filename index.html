@@ -26,7 +26,7 @@ h1{font-size:20px;margin:0}
 h2{font-size:15px;margin:24px 0 8px;font-weight:700}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .mu{color:var(--mu);font-size:13px}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--ln);padding:4px;border-radius:12px;margin:14px 0}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;background:var(--ln);padding:4px;border-radius:12px;margin:14px 0}
 .seg button{border:0;background:transparent;color:var(--mu);font:inherit;font-weight:700;min-height:44px;border-radius:9px}
 .seg button[aria-selected="true"]{background:var(--sf);color:var(--tx)}
 button,input{font:inherit;color:inherit}
@@ -83,6 +83,7 @@ tfoot td{font-weight:800;border-bottom:0}
   <div class="seg" role="tablist">
     <button role="tab" id="t-hoy" aria-selected="true" data-tab="hoy">Hoy</button>
     <button role="tab" id="t-sem" aria-selected="false" data-tab="sem">Semana</button>
+    <button role="tab" id="t-mes" aria-selected="false" data-tab="mes">Mes</button>
   </div>
 
   <section id="v-hoy">
@@ -140,15 +141,16 @@ tfoot td{font-weight:800;border-bottom:0}
     <div id="cierre-w"></div>
     <div class="wrap">
       <table>
-        <thead><tr><th>Día</th><th>Ventas</th><th>Moche</th><th>Propinas</th><th>%</th><th>Neto</th></tr></thead>
+        <thead><tr><th>Día</th><th>Ctas</th><th>Ventas</th><th>Moche</th><th>Propinas</th><th>%</th><th>Neto</th></tr></thead>
         <tbody id="dias"></tbody>
       </table>
     </div>
     <h2>Ajustes</h2>
     <div class="cfg">
-      <div><label class="mu" for="cfg-m">Moche (% de la cuenta)</label><input id="cfg-m" inputmode="decimal"></div>
+      <div><label class="mu" for="cfg-m">Moche (% de la cuenta)</label><input id="cfg-m" inputmode="decimal" readonly></div>
       <div><label class="mu" for="cfg-g">Meta semanal ($)</label><input id="cfg-g" inputmode="decimal" placeholder="Opcional"></div>
     </div>
+    <div id="mlock"></div>
     <h2>Respaldo</h2>
     <p class="mu">Tus datos se guardan solo en este celular y no se envían a ningún lado. Haz un respaldo de vez en cuando, por si cambias de celular o se borran los datos del navegador.</p>
     <div class="row">
@@ -159,10 +161,37 @@ tfoot td{font-weight:800;border-bottom:0}
     <div class="prev" id="lb"></div>
     <div class="prev" id="msg" role="status"></div>
   </section>
+
+  <section id="v-mes" hidden>
+    <div class="nav">
+      <button id="prevm" aria-label="Mes anterior">‹</button>
+      <div style="text-align:center"><b id="mrango" style="text-transform:capitalize"></b><div class="mu" id="msub"></div></div>
+      <button id="nextm" aria-label="Mes siguiente">›</button>
+    </div>
+    <div class="hero" style="margin-top:14px">
+      <div class="lbl">Neto del mes</div>
+      <div class="big" id="m-neto">$0.00</div>
+      <div class="stats">
+        <div>Ventas<b id="m-v">$0.00</b></div>
+        <div>Moche<b id="m-m">$0.00</b></div>
+        <div>Propinas<b id="m-p">$0.00</b></div>
+      </div>
+      <div class="avg" id="avg-m"></div>
+    </div>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Día</th><th>Ctas</th><th>Ventas</th><th>Propinas</th><th>Neto</th></tr></thead>
+        <tbody id="mdias"></tbody>
+        <tfoot id="mtot"></tfoot>
+      </table>
+    </div>
+    <div class="empty" id="m-empty"></div>
+  </section>
 </main>
 <script>
 const KEY="mesero-propinas-v1";
-let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,vo=0,editId=null;
+const PW="1129";
+let S={entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="";
 try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
 const $=id=>document.getElementById(id);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -176,11 +205,18 @@ let pct=0;
 function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:vo?vdate().getTime():Date.now(),man:vo>0?1:0});save();render();return true}
 function tipNow(){const a=num($("cuenta").value);return pct?Math.round(a*pct)/100:num($("prop").value)}
 function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+" ("+pc(pctOf(a,t))+"), te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
+function mrender(){
+  const h=$("mlock"),m=mmsg?'<div class="prev" role="status">'+mmsg+'</div>':'';
+  if(mstep===0)h.innerHTML='<button class="gh" style="margin-top:10px;width:100%" data-mchange="1">Cambiar moche</button>'+m;
+  else if(mstep===1)h.innerHTML='<div class="row"><input id="pw" type="password" inputmode="numeric" placeholder="Contraseña" autocomplete="off" aria-label="Contraseña"><button class="btn" data-mok="1">Entrar</button><button class="gh" data-mcancel="1">Cancelar</button></div>'+m;
+  else h.innerHTML='<div class="row"><button class="btn" style="flex:1" data-msave="1">Guardar moche</button><button class="gh" style="flex:1" data-mcancel="1">Cancelar</button></div>'+m;
+}
 function setNeto(el,n){el.textContent=money(n);el.classList.toggle("neg",n<0)}
 function vdate(){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-vo);return d}
 const pc=v=>v==null?"-":v.toLocaleString("es-MX",{maximumFractionDigits:1})+"%";
 const pctOf=(a,t)=>a>0?t/a*100:null;
 function tavg(l){let v=0,t=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;t+=e.tip||0}});return v>0?t/v*100:null}
+const cnt=l=>l.filter(e=>e.type==="cuenta").length;
 function wkey(ts){const d=new Date(ts);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return dkey(d)}
 function locked(ts){return !!(S.closed.d[dkey(ts)]||S.closed.w[wkey(ts)])}
 function cbox(kind,key,c,n){const nm=kind==="d"?"día":"semana";
@@ -188,8 +224,8 @@ function cbox(kind,key,c,n){const nm=kind==="d"?"día":"semana";
   if(!n)return "";
   return `<div class="bn"><b>Terminar ${nm}</b><button class="btn" style="width:100%;margin-top:8px" data-close="${kind}" data-key="${key}">Terminar ${nm}</button></div>`}
 function render(){
-  $("v-hoy").hidden=tab!=="hoy";$("v-sem").hidden=tab!=="sem";
-  $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");
+  $("v-hoy").hidden=tab!=="hoy";$("v-sem").hidden=tab!=="sem";$("v-mes").hidden=tab!=="mes";
+  $("t-hoy").setAttribute("aria-selected",tab==="hoy");$("t-sem").setAttribute("aria-selected",tab==="sem");$("t-mes").setAttribute("aria-selected",tab==="mes");
   $("fecha").textContent=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
   if(tab==="hoy"){
     const vd=vdate(),tk=dkey(vd),l=S.entries.filter(e=>dkey(e.ts)===tk).sort((a,b)=>b.ts-a.ts),s=sums(l);
@@ -199,45 +235,66 @@ function render(){
     $("dl").textContent=vd.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
     $("ds").textContent=vo===0?"Hoy":vo===1?"Ayer":"";
     $("nd").disabled=vo<=0;$("s-v").textContent=money(s.v);$("s-m").textContent=money(s.m);$("s-p").textContent=money(s.p);
-    $("avg-h").textContent=tavg(l)==null?"":(vo?"Propina promedio del día: ":"Propina promedio de hoy: ")+pc(tavg(l));
+    $("avg-h").textContent=cnt(l)?cnt(l)+(cnt(l)===1?" cuenta":" cuentas")+" · "+(vo?"propina promedio del día: ":"propina promedio de hoy: ")+pc(tavg(l)):"";
     $("form").hidden=locked(vd.getTime());
     $("cierre").innerHTML=S.closed.w[wkey(vd.getTime())]?'<div class="bn"><b>Semana cerrada</b>Reábrela en la pestaña Semana para editar.</div>':cbox("d",tk,S.closed.d[tk],l.length);
     $("lista").innerHTML=l.length?l.map(e=>{
       const h=new Date(e.ts).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
       const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+" ("+pc(pctOf(e.amount,e.tip||0))+"), moche "+money(e.amount*S.moche/100):"Propina";
       if(editId===String(e.id))return `<div class="item"><div class="ed"><input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
+      if(delId===String(e.id))return `<div class="item" style="flex-wrap:wrap"><div class="n" style="min-width:150px"><b>¿Borrar ${money(e.amount)}?</b><div class="mu">Se elimina y no se puede recuperar.</div></div><button class="btn" style="background:var(--bad);min-height:48px" data-delok="${e.id}">Sí, borrar</button><button class="gh" data-cancel="1">Cancelar</button></div>`;
       const lk=locked(e.ts);
       return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t}${e.man?"":" · "+h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">'+(vo?"No hay movimientos este día.":"Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.")+'</div>';
-  }else{
+  }else if(tab==="sem"){
     const st=wstart(off),en=new Date(st);en.setDate(st.getDate()+6);
     const f=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
     $("rango").textContent=f(st)+" al "+f(en);$("sub").textContent=off===0?"Esta semana":off===-1?"Semana pasada":"";
     $("nextw").disabled=off>=0;
     const tk=dkey(Date.now());let all=[],rows="";
     for(let i=0;i<7;i++){const d=new Date(st);d.setDate(st.getDate()+i);const k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);all=all.concat(l);const s=sums(l);
-      rows+=`<tr class="${k===tk?"today":""}"><td><button class="lk" data-day="${k}">${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</button></td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?pc(tavg(l)):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
+      rows+=`<tr class="${k===tk?"today":""}"><td><button class="lk" data-day="${k}">${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</button></td><td>${cnt(l)||"-"}</td><td>${l.length?money(s.v):"-"}</td><td>${l.length?money(s.m):"-"}</td><td>${l.length?money(s.p):"-"}</td><td>${l.length?pc(tavg(l)):"-"}</td><td>${l.length?money(s.n):"-"}</td></tr>`}
     $("dias").innerHTML=rows;
     const w=sums(all);setNeto($("w-neto"),w.n);$("w-v").textContent=money(w.v);$("w-m").textContent=money(w.m);$("w-p").textContent=money(w.p);
-    $("avg-w").textContent=tavg(all)==null?"":"Propina promedio de la semana: "+pc(tavg(all));
+    $("avg-w").textContent=cnt(all)?cnt(all)+(cnt(all)===1?" cuenta":" cuentas")+" · propina promedio: "+pc(tavg(all)):"";
     const nc=S.entries.filter(e=>e.type==="cuenta").length;
     $("avg-g").innerHTML=nc?`<div class="bn"><b>Promedio general: ${pc(tavg(S.entries))}</b>De propina sobre el total de tus ${nc} cuentas guardadas.</div>`:"";
     $("metabox").innerHTML=S.meta>0?`<h2>Meta de la semana</h2><div>Llevas ${money(w.n)} de ${money(S.meta)}</div><div class="bar"><i style="width:${Math.max(0,Math.min(100,w.n/S.meta*100))}%"></i></div>`:"";
     const wk=dkey(st);$("cierre-w").innerHTML=cbox("w",wk,S.closed.w[wk],all.length);
     $("lb").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Todavía no has hecho un respaldo.";
-    if(document.activeElement!==$("cfg-m"))$("cfg-m").value=S.moche;
+    $("cfg-m").readOnly=mstep!==2;if(mstep!==2&&document.activeElement!==$("cfg-m"))$("cfg-m").value=S.moche;mrender();
     if(document.activeElement!==$("cfg-g"))$("cfg-g").value=S.meta||"";
+  }else{
+    const b=new Date();b.setHours(12,0,0,0);b.setDate(1);b.setMonth(b.getMonth()+mo);
+    const Y=b.getFullYear(),M=b.getMonth(),dim=new Date(Y,M+1,0).getDate(),tk=dkey(Date.now());
+    $("mrango").textContent=b.toLocaleDateString("es-MX",{month:"long",year:"numeric"});
+    $("msub").textContent=mo===0?"Este mes":mo===-1?"Mes pasado":"";
+    $("nextm").disabled=mo>=0;
+    let all=[],rows="",dw=0;
+    for(let i=1;i<=dim;i++){const d=new Date(Y,M,i,12),k=dkey(d),l=S.entries.filter(e=>dkey(e.ts)===k);if(!l.length)continue;dw++;all=all.concat(l);const s=sums(l);
+      rows+=`<tr class="${k===tk?"today":""}"><td><button class="lk" data-day="${k}">${d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric"})}</button></td><td>${cnt(l)||"-"}</td><td>${money(s.v)}</td><td>${money(s.p)}</td><td>${money(s.n)}</td></tr>`}
+    const w=sums(all),nc=cnt(all);
+    setNeto($("m-neto"),w.n);$("m-v").textContent=money(w.v);$("m-m").textContent=money(w.m);$("m-p").textContent=money(w.p);
+    $("avg-m").textContent=nc?nc+(nc===1?" cuenta":" cuentas")+" en "+dw+(dw===1?" día":" días")+" · propina promedio: "+pc(tavg(all)):"";
+    $("mdias").innerHTML=rows;
+    $("mtot").innerHTML=all.length?`<tr><td>Total</td><td>${nc}</td><td>${money(w.v)}</td><td>${money(w.p)}</td><td>${money(w.n)}</td></tr>`:"";
+    $("m-empty").textContent=all.length?"":"No hay movimientos este mes.";
   }
 }
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;render();return}
+  const t=e.target.closest("[data-tab]");if(t){tab=t.dataset.tab;if(tab==="hoy")vo=0;editId=null;delId=null;mstep=0;mmsg="";render();return}
   const p=e.target.closest("[data-pct]");if(p){const v=+p.dataset.pct;pct=pct===v?0:v;if(!pct)$("prop").value="";upd();return}
   const dy=e.target.closest("[data-day]");if(dy){const[Y,M,D]=dy.dataset.day.split("-").map(Number),t0=new Date(),t1=new Date(Y,M-1,D,12);t0.setHours(12,0,0,0);if(t1>t0)return;vo=Math.round((t0-t1)/864e5);tab="hoy";editId=null;render();return}
   const c=e.target.closest("[data-close]");if(c){const k=c.dataset.close,key=c.dataset.key,l=S.entries.filter(x=>(k==="d"?dkey(x.ts):wkey(x.ts))===key);S.closed[k][key]={neto:sums(l).n,at:Date.now()};editId=null;save();render();return}
   const r=e.target.closest("[data-reopen]");if(r){delete S.closed[r.dataset.reopen][r.dataset.key];save();render();return}
-  const ed=e.target.closest("[data-edit]");if(ed){editId=ed.dataset.edit;render();return}
-  const cn=e.target.closest("[data-cancel]");if(cn){editId=null;render();return}
+  const ed=e.target.closest("[data-edit]");if(ed){editId=ed.dataset.edit;delId=null;render();return}
+  const cn=e.target.closest("[data-cancel]");if(cn){editId=null;delId=null;render();return}
   const sv=e.target.closest("[data-save]");if(sv){const x=S.entries.find(y=>String(y.id)===sv.dataset.save),a=num($("ed-a").value);if(x&&a){x.amount=a;if(x.type==="cuenta")x.tip=num($("ed-t").value)}editId=null;save();render();return}
-  const d=e.target.closest("[data-del]");if(d){S.entries=S.entries.filter(x=>String(x.id)!==d.dataset.del);save();render()}
+  if(e.target.closest("[data-mchange]")){mstep=1;mmsg="";render();setTimeout(()=>{const x=$("pw");if(x)x.focus()},0);return}
+  if(e.target.closest("[data-mok]")){const x=$("pw");if(x&&x.value.trim()===PW){mstep=2;mmsg="";render();setTimeout(()=>$("cfg-m").focus(),0)}else{mmsg="Contraseña incorrecta.";render();setTimeout(()=>{const y=$("pw");if(y)y.focus()},0)}return}
+  if(e.target.closest("[data-mcancel]")){$("cfg-m").blur();mstep=0;mmsg="";render();return}
+  if(e.target.closest("[data-msave]")){const v=parseFloat(String($("cfg-m").value).replace(",","."));if(!(v>=0&&v<=100)){mmsg="Escribe un número entre 0 y 100.";render();return}S.moche=v;save();$("cfg-m").blur();mstep=0;mmsg="Moche actualizado.";render();return}
+  const dk=e.target.closest("[data-delok]");if(dk){S.entries=S.entries.filter(x=>String(x.id)!==dk.dataset.delok);delId=null;save();render();return}
+  const d=e.target.closest("[data-del]");if(d){delId=d.dataset.del;editId=null;render()}
 });
 $("add-c").onclick=()=>{if(add($("cuenta").value,tipNow())){$("cuenta").value="";$("prop").value="";pct=0;upd()}};
 $("cuenta").addEventListener("input",upd);
@@ -246,7 +303,8 @@ $("prop").addEventListener("input",()=>{pct=0;upd()});
 $("pd").onclick=()=>{vo++;editId=null;render()};
 $("nd").onclick=()=>{if(vo>0){vo--;editId=null;render()}};
 $("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
-$("cfg-m").addEventListener("input",()=>{const v=parseFloat(String($("cfg-m").value).replace(",","."));if(v>=0&&v<=100){S.moche=v;save();render()}});
+$("prevm").onclick=()=>{mo--;render()};$("nextm").onclick=()=>{if(mo<0){mo++;render()}};
+document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const b=e.target.id==="pw"?document.querySelector("[data-mok]"):(e.target.id==="cfg-m"&&mstep===2)?document.querySelector("[data-msave]"):null;if(b)b.click()});
 $("cfg-g").addEventListener("input",()=>{S.meta=num($("cfg-g").value);save();render()});
 const msg=t=>{$("msg").textContent=t};
 async function backup(){
