@@ -116,7 +116,10 @@ tfoot td{font-weight:800;border-bottom:0}
       <div class="avg" id="avg-h"></div>
     </div>
 
-    <div id="form"><label class="t" for="cuenta">Total de la cuenta</label>
+    <div id="form"><label class="t" for="cnombre">Nombre de la cuenta</label>
+    <input id="cnombre" maxlength="40" autocomplete="off" placeholder="Ej. Mesa 5" style="width:100%;margin-top:8px">
+
+    <label class="t" for="cuenta">Total de la cuenta</label>
     <input id="cuenta" inputmode="decimal" placeholder="0.00" autocomplete="off" style="width:100%;margin-top:8px">
 
     <label class="t" for="prop">Propina</label>
@@ -222,7 +225,8 @@ const num=v=>{const n=parseFloat(String(v).replace(",","."));return n>0?n:0};
 function sums(l){let v=0,p=0;l.forEach(e=>{if(e.type==="cuenta"){v+=e.amount;p+=e.tip||0}else p+=e.amount});const m=v*S.moche/100;return{v,p,m,n:p-m}}
 function wstart(o){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7)+o*7);return d}
 let pct=0;
-function add(total,tip){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",amount:a,tip:tip>0?tip:0,ts:vo?vdate().getTime():Date.now(),man:vo>0?1:0});save();render();return true}
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function add(total,tip,nombre){const a=num(total);if(!a)return false;S.entries.push({id:Date.now()+Math.random(),type:"cuenta",nombre:String(nombre||"").trim().slice(0,40),amount:a,tip:tip>0?tip:0,ts:vo?vdate().getTime():Date.now(),man:vo>0?1:0});save();render();return true}
 function tipNow(){const a=num($("cuenta").value);return pct?Math.round(a*pct)/100:num($("prop").value)}
 function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)$("prop").value=t?t.toFixed(2):"";$("prev").textContent=a?"Moche "+money(m)+", propina "+money(t)+" ("+pc(pctOf(a,t))+"), te quedan "+money(t-m):"";document.querySelectorAll("[data-pct]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.pct===pct)))}
 function mrender(){
@@ -274,10 +278,10 @@ function render(){
     $("lista").innerHTML=l.length?l.map(e=>{
       const h=new Date(e.ts).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
       const t=e.type==="cuenta"?"Cuenta, propina "+money(e.tip||0)+" ("+pc(pctOf(e.amount,e.tip||0))+"), moche "+money(e.amount*S.moche/100):"Propina";
-      if(editId===String(e.id))return `<div class="item"><div class="ed"><input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
-      if(delId===String(e.id))return `<div class="item" style="flex-wrap:wrap"><div class="n" style="min-width:150px"><b>¿Borrar ${money(e.amount)}?</b><div class="mu">Se elimina y no se puede recuperar.</div></div><button class="btn" style="background:var(--bad);min-height:48px" data-delok="${e.id}">Sí, borrar</button><button class="gh" data-cancel="1">Cancelar</button></div>`;
+      if(editId===String(e.id))return `<div class="item"><div class="ed">${e.type==="cuenta"?`<input id="ed-n" maxlength="40" value="${esc(e.nombre||"")}" placeholder="Nombre de la cuenta" aria-label="Nombre de la cuenta" style="flex-basis:100%">`:""}<input id="ed-a" inputmode="decimal" value="${e.amount}" aria-label="Total">${e.type==="cuenta"?`<input id="ed-t" inputmode="decimal" value="${e.tip||0}" aria-label="Propina">`:""}<button class="btn" data-save="${e.id}">Guardar</button><button class="gh" data-cancel="1">Cancelar</button></div></div>`;
+      if(delId===String(e.id))return `<div class="item" style="flex-wrap:wrap"><div class="n" style="min-width:150px"><b>¿Borrar ${e.nombre?esc(e.nombre)+" · ":""}${money(e.amount)}?</b><div class="mu">Se elimina y no se puede recuperar.</div></div><button class="btn" style="background:var(--bad);min-height:48px" data-delok="${e.id}">Sí, borrar</button><button class="gh" data-cancel="1">Cancelar</button></div>`;
       const lk=locked(e.ts);
-      return `<div class="item"><div class="n"><b>${money(e.amount)}</b><div class="mu">${t}${e.man?"":" · "+h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">'+(vo?"No hay movimientos este día.":"Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.")+'</div>';
+      return `<div class="item"><div class="n"><b>${e.nombre?esc(e.nombre)+" · ":""}${money(e.amount)}</b><div class="mu">${t}${e.man?"":" · "+h}</div></div>${lk?"":`<button class="d" data-edit="${e.id}" aria-label="Editar">✎</button><button class="d" data-del="${e.id}" aria-label="Borrar">×</button>`}</div>`}).join(""):'<div class="empty">'+(vo?"No hay movimientos este día.":"Todavía no hay movimientos hoy. Agrega la primera cuenta o propina.")+'</div>';
   }else if(tab==="sem"){
     const st=wstart(off),en=new Date(st);en.setDate(st.getDate()+6);
     const f=d=>d.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
@@ -323,7 +327,7 @@ document.addEventListener("click",e=>{
   const r=e.target.closest("[data-reopen]");if(r){delete S.closed[r.dataset.reopen][r.dataset.key];save();render();return}
   const ed=e.target.closest("[data-edit]");if(ed){editId=ed.dataset.edit;delId=null;render();return}
   const cn=e.target.closest("[data-cancel]");if(cn){editId=null;delId=null;render();return}
-  const sv=e.target.closest("[data-save]");if(sv){const x=S.entries.find(y=>String(y.id)===sv.dataset.save),a=num($("ed-a").value);if(x&&a){x.amount=a;if(x.type==="cuenta")x.tip=num($("ed-t").value)}editId=null;save();render();return}
+  const sv=e.target.closest("[data-save]");if(sv){const x=S.entries.find(y=>String(y.id)===sv.dataset.save),a=num($("ed-a").value);if(x&&a){x.amount=a;if(x.type==="cuenta"){x.tip=num($("ed-t").value);const nn=$("ed-n").value.trim().slice(0,40);if(nn||!x.nombre)x.nombre=nn}}editId=null;save();render();return}
   if(e.target.closest("[data-mchange]")){mstep=1;mmsg="";render();setTimeout(()=>{const x=$("pw");if(x)x.focus()},0);return}
   if(e.target.closest("[data-mok]")){const x=$("pw");if(x&&x.value.trim()===PW){mstep=2;mmsg="";render();setTimeout(()=>$("cfg-m").focus(),0)}else{mmsg="Contraseña incorrecta.";render();setTimeout(()=>{const y=$("pw");if(y)y.focus()},0)}return}
   if(e.target.closest("[data-mcancel]")){$("cfg-m").blur();mstep=0;mmsg="";render();return}
@@ -331,10 +335,11 @@ document.addEventListener("click",e=>{
   const dk=e.target.closest("[data-delok]");if(dk){S.entries=S.entries.filter(x=>String(x.id)!==dk.dataset.delok);delId=null;save();render();return}
   const d=e.target.closest("[data-del]");if(d){delId=d.dataset.del;editId=null;render()}
 });
-$("add-c").onclick=()=>{if(add($("cuenta").value,tipNow())){$("cuenta").value="";$("prop").value="";pct=0;upd()}};
+$("add-c").onclick=()=>{const nm=$("cnombre").value.trim();if(!nm){$("prev").textContent="Escribe el nombre de la cuenta.";$("cnombre").focus();return}if(add($("cuenta").value,tipNow(),nm)){$("cnombre").value="";$("cuenta").value="";$("prop").value="";pct=0;upd()}};
 $("cuenta").addEventListener("input",upd);
 $("prop").addEventListener("input",()=>{pct=0;upd()});
 ["cuenta","prop"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")$("add-c").click()}));
+$("cnombre").addEventListener("keydown",e=>{if(e.key==="Enter")$("cuenta").focus()});
 $("pd").onclick=()=>{vo++;editId=null;render()};
 $("nd").onclick=()=>{if(vo>0){vo--;editId=null;render()}};
 $("prevw").onclick=()=>{off--;render()};$("nextw").onclick=()=>{if(off<0){off++;render()}};
