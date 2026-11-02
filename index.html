@@ -213,9 +213,9 @@ tfoot td{font-weight:800;border-bottom:0}
 </main>
 <script>
 const KEY="mesero-propinas-v1";
-const PW="1129";
-let S={name:"",entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="",aj=false;
-try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(typeof p.name==="string")S.name=p.name.trim().slice(0,30);if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("propinas:"+t)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+let S={pin:"",name:"",entries:[],moche:5,meta:0,closed:{d:{},w:{}},lastBackup:0},tab="hoy",off=0,mo=0,vo=0,editId=null,delId=null,mstep=0,mmsg="",aj=false;
+try{const r=localStorage.getItem(KEY);if(r){const p=JSON.parse(r);S.entries=Array.isArray(p.entries)?p.entries:[];if(typeof p.pin==="string")S.pin=p.pin;if(typeof p.name==="string")S.name=p.name.trim().slice(0,30);if(+p.moche>=0)S.moche=+p.moche;if(+p.meta>0)S.meta=+p.meta;if(p.closed&&p.closed.d&&p.closed.w)S.closed=p.closed;if(+p.lastBackup>0)S.lastBackup=+p.lastBackup}}catch(e){}
 const $=id=>document.getElementById(id);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const money=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -232,7 +232,7 @@ function upd(){const a=num($("cuenta").value),t=tipNow(),m=a*S.moche/100;if(pct)
 function mrender(){
   const h=$("mlock"),m=mmsg?'<div class="prev" role="status">'+mmsg+'</div>':'';
   if(mstep===0)h.innerHTML='<button class="gh" style="margin-top:10px;width:100%" data-mchange="1">Cambiar moche</button>'+m;
-  else if(mstep===1)h.innerHTML='<div class="row"><input id="pw" type="password" inputmode="numeric" placeholder="Contraseña" autocomplete="off" aria-label="Contraseña"><button class="btn" data-mok="1">Entrar</button><button class="gh" data-mcancel="1">Cancelar</button></div>'+m;
+  else if(mstep===1)h.innerHTML='<div class="row"><input id="pw" type="password" inputmode="numeric" placeholder="'+(S.pin?"Contraseña":"Crea una contraseña")+'" autocomplete="off" aria-label="Contraseña"><button class="btn" data-mok="1">Entrar</button><button class="gh" data-mcancel="1">Cancelar</button></div>'+m;
   else h.innerHTML='<div class="row"><button class="btn" style="flex:1" data-msave="1">Guardar moche</button><button class="gh" style="flex:1" data-mcancel="1">Cancelar</button></div>'+m;
 }
 function setNeto(el,n){el.textContent=money(n);el.classList.toggle("neg",n<0)}
@@ -329,7 +329,7 @@ document.addEventListener("click",e=>{
   const cn=e.target.closest("[data-cancel]");if(cn){editId=null;delId=null;render();return}
   const sv=e.target.closest("[data-save]");if(sv){const x=S.entries.find(y=>String(y.id)===sv.dataset.save),a=num($("ed-a").value);if(x&&a){x.amount=a;if(x.type==="cuenta"){x.tip=num($("ed-t").value);const nn=$("ed-n").value.trim().slice(0,40);if(nn||!x.nombre)x.nombre=nn}}editId=null;save();render();return}
   if(e.target.closest("[data-mchange]")){mstep=1;mmsg="";render();setTimeout(()=>{const x=$("pw");if(x)x.focus()},0);return}
-  if(e.target.closest("[data-mok]")){const x=$("pw");if(x&&x.value.trim()===PW){mstep=2;mmsg="";render();setTimeout(()=>$("cfg-m").focus(),0)}else{mmsg="Contraseña incorrecta.";render();setTimeout(()=>{const y=$("pw");if(y)y.focus()},0)}return}
+  if(e.target.closest("[data-mok]")){const x=$("pw"),v=x?x.value.trim():"";(async()=>{if(!v)return;const h=await sha(v);if(!S.pin){S.pin=h;save();mstep=2;mmsg="Contraseña creada.";render();setTimeout(()=>$("cfg-m").focus(),0)}else if(h===S.pin){mstep=2;mmsg="";render();setTimeout(()=>$("cfg-m").focus(),0)}else{mmsg="Contraseña incorrecta.";render();setTimeout(()=>{const y=$("pw");if(y)y.focus()},0)}})();return}
   if(e.target.closest("[data-mcancel]")){$("cfg-m").blur();mstep=0;mmsg="";render();return}
   if(e.target.closest("[data-msave]")){const v=parseFloat(String($("cfg-m").value).replace(",","."));if(!(v>=0&&v<=100)){mmsg="Escribe un número entre 0 y 100.";render();return}S.moche=v;save();$("cfg-m").blur();mstep=0;mmsg="Moche actualizado.";render();return}
   const dk=e.target.closest("[data-delok]");if(dk){S.entries=S.entries.filter(x=>String(x.id)!==dk.dataset.delok);delId=null;save();render();return}
@@ -368,7 +368,7 @@ function restore(f){
     const p=JSON.parse(r.result);if(!p||!Array.isArray(p.entries))throw 0;
     const ok=p.entries.filter(e=>e&&(e.type==="cuenta"||e.type==="propina")&&e.amount>0&&e.ts>0);
     if(!confirm("Esto reemplaza lo que tienes ahora por el respaldo ("+ok.length+" movimientos). ¿Continuar?"))return;
-    S.entries=ok.map(e=>({id:e.id||Date.now()+Math.random(),type:e.type,amount:+e.amount,tip:+e.tip>0?+e.tip:0,ts:+e.ts}));
+    S.entries=ok.map(e=>({id:e.id||Date.now()+Math.random(),type:e.type,amount:+e.amount,tip:+e.tip>0?+e.tip:0,ts:+e.ts,nombre:String(e.nombre||"").slice(0,40),man:e.man?1:0}));
     if(+p.moche>=0)S.moche=+p.moche;S.meta=+p.meta>0?+p.meta:0;
     S.closed=p.closed&&p.closed.d&&p.closed.w?p.closed:{d:{},w:{}};
     save();render();msg("Respaldo restaurado.");
